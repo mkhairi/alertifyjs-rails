@@ -31,6 +31,7 @@ In order to get the CSS, add the following line to `app/assets/stylesheets/appli
 ```css
 /*
  *= require alertify
+ *= require alertify/bootstrap
  */
 ```
 
