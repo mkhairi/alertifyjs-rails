@@ -17,6 +17,7 @@ module AlertifyjsHelper
       end
       jsReturn = javascript_tag(js_alertify)
     end
+    flash.clear
     jsReturn.html_safe()
   end
 end

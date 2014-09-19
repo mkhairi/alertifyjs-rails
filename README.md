@@ -1,6 +1,6 @@
 # alertifyjs-rails
 
-This gem provides [alertify.js](http://alertifyjs.com/) (v0.4) for Rails.
+This gem provides [alertify.js](http://alertifyjs.com/) (v0.4.0) for Rails.
 
 
 ## Installation
@@ -31,16 +31,13 @@ In order to get the CSS, add the following line to `app/assets/stylesheets/appli
 ```css
 /*
  *= require alertify
+ *= require alertify/default
  *= require alertify/bootstrap
  */
 ```
 
-## Contributing
+flash helper, add the following line in layout
 
-1. Fork it
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create new Pull Request
-
-Copyright &copy; 2014 mkhairi, released under the MIT license
+```html
+<div id="flash_messages"><%= alertify_flash %></div>
+```
