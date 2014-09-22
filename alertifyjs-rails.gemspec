@@ -10,7 +10,7 @@ Gem::Specification.new do |gem|
 
   gem.description   = %q{Use Alertify.js (alertifyjs.com) with Rails 3 and 4}
   gem.summary       = %q{This gem provides the Alertify.js (alertifyjs.com) for Rails applications}
-  gem.homepage      = ""
+  gem.homepage      = "https://github.com/mkhairi/alertifyjs-rails.git"
 
   gem.files         = `git ls-files`.split($/)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }

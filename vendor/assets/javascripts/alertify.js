@@ -7,7 +7,7 @@
  * @license MIT <http://opensource.org/licenses/mit-license.php>
  * @link http://alertifyjs.com
  * @module AlertifyJS
- * @version 0.4.0
+ * @version 0.6.0
  */
 ( function ( window ) {
     'use strict';
@@ -34,9 +34,10 @@
         maximizable:true,
         pinnable:true,
         pinned:true,
-        transition:'pulse',
         padding: true,
         overflow:true,
+        maintainFocus:true,
+        transition:'pulse',
         notifier:{
             delay:5,
             position:'bottom-right'
@@ -178,16 +179,16 @@
     var transition = (function () {
         var t, type;
         var supported = false;
-        var el = document.createElement('fakeelement');
         var transitions = {
-            'WebkitTransition': 'webkitTransitionEnd',
-            'MozTransition': 'transitionend',
-            'OTransition': 'otransitionend',
-            'transition': 'transitionend'
+            'animation'        : 'animationend',
+            'OAnimation'       : 'oAnimationEnd oanimationend',
+            'msAnimation'      : 'MSAnimationEnd',
+            'MozAnimation'     : 'animationend',
+            'WebkitAnimation'  : 'webkitAnimationEnd'
         };
 
         for (t in transitions) {
-            if (el.style[t] !== undefined) {
+            if (document.body.style[t] !== undefined) {
                 type = transitions[t];
                 supported = true;
                 break;
@@ -340,6 +341,8 @@
                      * @type {Node}
                      */
                     activeElement:document.body,
+                    timerIn:undefined,
+                    timerOut:undefined,
                     buttons: setup.buttons,
                     focus: setup.focus,
                     options: {
@@ -1165,8 +1168,6 @@
                 setFocus(instance, resetTarget);
             }
         }
-        //animation timers
-        var transitionInTimeout, transitionOutTimeout;
         /**
          * Transition in transitionend event handler. 
          *
@@ -1177,7 +1178,7 @@
          */
         function handleTransitionInEvent(event, instance) {
             // clear the timer
-            clearTimeout(transitionInTimeout);
+            clearTimeout(instance.__internal.timerIn);
 
             // once transition is complete, set focus
             setFocus(instance);
@@ -1206,7 +1207,7 @@
          */
         function handleTransitionOutEvent(event, instance) {
             // clear the timer
-            clearTimeout(transitionOutTimeout);
+            clearTimeout(instance.__internal.timerOut);
             // unbind the event
             off(instance.elements.dialog, transition.type, instance.__internal.transitionOutHandler);
 
@@ -1221,7 +1222,10 @@
             }
 
             // return focus to the last active element
-            instance.__internal.activeElement.focus();
+            if (alertify.defaults.maintainFocus && instance.__internal.activeElement) {
+                instance.__internal.activeElement.focus();
+                instance.__internal.activeElement = null;
+            }
         }
         /* Controls moving a dialog around */
         //holde the current moving instance
@@ -1852,6 +1856,19 @@
                 }
             },
             /**
+             * [Alias] Sets dialog settings/options 
+             */
+            set:function(key, value){
+                this.setting(key,value);
+                return this;
+            },
+            /**
+             * [Alias] Gets dialog settings/options 
+             */
+            get:function(key){
+                return this.setting(key);
+            },
+            /**
             * Sets dialog header
             * @content {string or element}
             *
@@ -1906,7 +1923,9 @@
                     openInstances.push(this);
 
                     // save last focused element
-                    this.__internal.activeElement = document.activeElement;
+                    if(alertify.defaults.maintainFocus){
+                        this.__internal.activeElement = document.activeElement;
+                    }
 
                     //allow custom dom manipulation updates before showing the dialog.
                     if(typeof this.prepare === 'function'){
@@ -1933,8 +1952,8 @@
                     addClass(this.elements.root, classes.animationIn);
 
                     // set 1s fallback in case transition event doesn't fire
-                    clearTimeout( transitionInTimeout );
-                    transitionInTimeout = setTimeout( this.__internal.transitionInHandler, transition.supported ? 1000 : 100 );
+                    clearTimeout( this.__internal.timerIn);
+                    this.__internal.timerIn = setTimeout( this.__internal.transitionInHandler, transition.supported ? 1000 : 100 );
 
                     if(isSafari){
                         // force desktop safari reflow
@@ -1981,9 +2000,8 @@
                     addClass(this.elements.root, classes.animationOut);
 
                     // set 1s fallback in case transition event doesn't fire
-                    clearTimeout( transitionOutTimeout );
-                    transitionOutTimeout = setTimeout( this.__internal.transitionOutHandler, transition.supported ? 1000 : 100 );
-
+                    clearTimeout( this.__internal.timerOut );
+                    this.__internal.timerOut = setTimeout( this.__internal.transitionOutHandler, transition.supported ? 1000 : 100 );
                     // hide dialog
                     addClass(this.elements.root, classes.hidden);
                     //reflow
@@ -2085,9 +2103,9 @@
 
             function transitionDone(event, instance) {
                 // unbind event
-                off(instance.__internal.element, transition.type, transitionDone);
+                off(instance.element, transition.type, transitionDone);
                 // remove the message
-                element.removeChild(instance.__internal.element);
+                element.removeChild(instance.element);
             }
 
             function initialize(instance) {
@@ -2096,7 +2114,6 @@
                         pushed: false,
                         delay : undefined,
                         timer: undefined,
-                        element: div,
                         clickHandler: undefined,
                         transitionEndHandler: undefined,
                         transitionTimeout: undefined
@@ -2111,6 +2128,8 @@
                 clearTimeout(instance.__internal.transitionTimeout);
             }
             return initialize({
+                /* notification DOM element*/
+                element: div,
                 /*
                  * Pushes a notification message 
                  * @param {string or DOMElement} content The notification message content
@@ -2133,6 +2152,7 @@
                                 wait = _content;
                             } else {
                                 content = _content;
+                                wait = this.__internal.delay;
                             }
                             break;
                         case 2:
@@ -2146,14 +2166,14 @@
                         }
                         // append or insert
                         if (notifier.__internal.position.indexOf('top') < 0) {
-                            element.appendChild(this.__internal.element);
+                            element.appendChild(this.element);
                         } else {
-                            element.insertBefore(this.__internal.element, element.firstChild);
+                            element.insertBefore(this.element, element.firstChild);
                         }
-                        reflow = this.__internal.element.offsetWidth;
-                        addClass(this.__internal.element, classes.visible);
+                        reflow = this.element.offsetWidth;
+                        addClass(this.element, classes.visible);
                         // attach click event
-                        on(this.__internal.element, 'click', this.__internal.clickHandler);
+                        on(this.element, 'click', this.__internal.clickHandler);
                         return this.delay(wait);
                     }
                     return this;
@@ -2179,12 +2199,12 @@
                         clearTimers(this);
                         if (!(typeof this.ondismiss === 'function' && this.ondismiss.call(this) === false)) {
                             //detach click event
-                            off(this.__internal.element, 'click', this.__internal.clickHandler);
+                            off(this.element, 'click', this.__internal.clickHandler);
                             // ensure element exists
-                            if (typeof this.__internal.element !== 'undefined' && this.__internal.element.parentNode === element) {
+                            if (typeof this.element !== 'undefined' && this.element.parentNode === element) {
                                 //transition end or fallback
                                 this.__internal.transitionTimeout = setTimeout(this.__internal.transitionEndHandler, transition.supported ? 1000 : 100);
-                                removeClass(this.__internal.element, classes.visible);
+                                removeClass(this.element, classes.visible);
 
                                 // custom callback on dismiss
                                 if (typeof this.callback === 'function') {
@@ -2217,9 +2237,9 @@
                  */
                 setContent: function (content) {
                     if (typeof content === 'string') {
-                        this.__internal.element.innerHTML = content;
+                        this.element.innerHTML = content;
                     } else {
-                        this.__internal.element.appendChild(content);
+                        this.element.appendChild(content);
                     }
                     return this;
                 }
@@ -2256,6 +2276,19 @@
                     }
                 }
                 return this;
+            },
+            /**
+             * [Alias] Sets dialog settings/options 
+             */
+            set:function(key,value){
+                this.setting(key,value);
+                return this;
+            },
+            /**
+             * [Alias] Gets dialog settings/options 
+             */
+            get:function(key){
+                return this.setting(key);
             },
             /**
              * Creates a new notification message
@@ -2365,8 +2398,8 @@
              *
              * @param {string}      Dialog name.
              * @param {Function}    A Dialog factory function.
-             * @param {Boolean}     indicates whether to create a singleton or transient dialog.
-             * @type {Object}
+             * @param {Boolean}     Indicates whether to create a singleton or transient dialog.
+             * @param {String}      The name of the base type to inherit from.
              */
             dialog: function (name, Factory, transient, base) {
 
@@ -2438,16 +2471,28 @@
                 }
             },
             /**
+             * [Alias] Sets dialog settings/options 
+             */
+            set: function(name,key,value){
+                return this.setting(name, key,value);
+            },
+            /**
+             * [Alias] Gets dialog settings/options 
+             */
+            get: function(name, key){
+                return this.setting(name, key);
+            },
+            /**
              * Creates a new notification message.
              * If a type is passed, a class name "ajs-{type}" will be added.
              * This allows for custom look and feel for various types of notifications.
              *
-             * @param  {String}		[message=undefined]		Message text
-             * @param  {String}		[type='']				Type of log message
-             * @param  {String}		[value='']				Time (in ms) to wait before auto-close
-             * @param  {Function}	[callback=undefined]	A callback function to be invoked when the log is closed.
+             * @param  {String | DOMElement}    [message=undefined]		Message text
+             * @param  {String}                 [type='']				Type of log message
+             * @param  {String}                 [wait='']				Time (in seconds) to wait before auto-close
+             * @param  {Function}               [callback=undefined]	A callback function to be invoked when the log is closed.
              *
-             * @return {undefined}
+             * @return {Object} Notification object.
              */
             notify: function (message, type, wait, callback) {
                 return notifier.create(type, callback).push(message, wait);
@@ -2456,11 +2501,10 @@
              * Creates a new notification message.
              *
              * @param  {String}		[message=undefined]		Message text
-             * @param  {String}		[type='']				Type of log message
-             * @param  {String}		[value='']				Time (in ms) to wait before auto-close
+             * @param  {String}     [wait='']				Time (in seconds) to wait before auto-close
              * @param  {Function}	[callback=undefined]	A callback function to be invoked when the log is closed.
              *
-             * @return {undefined}
+             * @return {Object} Notification object.
              */
             message: function (message, wait, callback) {
                 return notifier.create(null, callback).push(message, wait);
@@ -2469,11 +2513,10 @@
              * Creates a new notification message of type 'success'.
              *
              * @param  {String}		[message=undefined]		Message text
-             * @param  {String}		[type='']				Type of log message
-             * @param  {String}		[value='']				Time (in ms) to wait before auto-close
+             * @param  {String}     [wait='']				Time (in seconds) to wait before auto-close
              * @param  {Function}	[callback=undefined]	A callback function to be invoked when the log is closed.
              *
-             * @return {undefined}
+             * @return {Object} Notification object.
              */
             success: function (message, wait, callback) {
                 return notifier.create('success', callback).push(message, wait);
@@ -2482,11 +2525,10 @@
              * Creates a new notification message of type 'error'.
              *
              * @param  {String}		[message=undefined]		Message text
-             * @param  {String}		[type='']				Type of log message
-             * @param  {String}		[value='']				Time (in ms) to wait before auto-close
+             * @param  {String}     [wait='']				Time (in seconds) to wait before auto-close
              * @param  {Function}	[callback=undefined]	A callback function to be invoked when the log is closed.
              *
-             * @return {undefined}
+             * @return {Object} Notification object.
              */
             error: function (message, wait, callback) {
                 return notifier.create('error', callback).push(message, wait);
@@ -2495,11 +2537,10 @@
              * Creates a new notification message of type 'warning'.
              *
              * @param  {String}		[message=undefined]		Message text
-             * @param  {String}		[type='']				Type of log message
-             * @param  {String}		[value='']				Time (in ms) to wait before auto-close
+             * @param  {String}     [wait='']				Time (in seconds) to wait before auto-close
              * @param  {Function}	[callback=undefined]	A callback function to be invoked when the log is closed.
              *
-             * @return {undefined}
+             * @return {Object} Notification object.
              */
             warning: function (message, wait, callback) {
                 return notifier.create('warning', callback).push(message, wait);
