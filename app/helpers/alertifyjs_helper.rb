@@ -1,23 +1,28 @@
-module AlertifyjsHelper
-  ALERT_TYPES = [:error, :info, :success, :warning] unless const_defined?(:ALERT_TYPES)
-
+module AlertifyjsHelper  
   def alertify_flash
+    valid_alertify = ["error", "message", "success", "warning"]
     jsReturn = javascript_tag()
+    js_alertify = ""
+    queue = 0
     flash.each do |type, message|
-      # Skip empty messages, e.g. for devise messages set to nothing in a locale file.
       next if message.blank?
-      
-      type = :success if type == :notice
-      type = :error   if type == :alert
-      next unless ALERT_TYPES.include?(type)
-
-      js_alertify = ""
+      type = type.to_s   
+      case type   
+      when "alert"
+        type = "error"
+      when "notice"
+        type = "success"
+      when "info"
+        type = "message"
+      end      
+     next unless valid_alertify.include?(type)         
       Array(message).each do |msg|
-        js_alertify << "alertify.#{type}('#{j(msg)}');\n" if msg;
+        js_alertify << "setTimeout(function(){alertify.#{type}('#{j(msg)}');}, #{queue});"
       end
-      jsReturn = javascript_tag(js_alertify)
-    end
+      queue += 100
+    end    
     flash.clear
+    jsReturn = javascript_tag(js_alertify)
     jsReturn.html_safe()
   end
 end

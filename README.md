@@ -26,6 +26,11 @@ The alertify files will be added to the asset pipeline and available for you to 
 //= require alertify
 ```
 
+Optional js(coffe script) replace browser confirm dialog
+```javascript
+//= require alertify/alertify/confirm-modal
+```
+
 In order to get the CSS, add the following line to `app/assets/stylesheets/application.css.scss`
 
 ```css
