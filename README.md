@@ -1,6 +1,6 @@
 # alertifyjs-rails
 
-This gem provides [alertify.js](http://alertifyjs.com/) (v0.6.1) for Rails.
+This gem provides [alertify.js](http://alertifyjs.com/) (v0.7) for Rails.
 
 
 ## Installation
@@ -43,6 +43,8 @@ In order to get the CSS, add the following line to `app/assets/stylesheets/appli
 
 flash helper, add the following line in layout
 
-```html
-<div id="flash_messages"><%= alertify_flash %></div>
+```html 
+<head>
+<%= alertify_flash %>
+</head>
 ```
