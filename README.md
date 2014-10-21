@@ -1,6 +1,6 @@
 # alertifyjs-rails
 
-This gem provides [alertify.js](http://alertifyjs.com/) (v0.7) for Rails.
+This gem provides [alertify.js](http://alertifyjs.com/) (v0.9) for Rails.
 
 
 ## Installation

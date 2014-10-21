@@ -7,7 +7,7 @@
  * @license MIT <http://opensource.org/licenses/mit-license.php>
  * @link http://alertifyjs.com
  * @module AlertifyJS
- * @version 0.7.0
+ * @version 0.9.0
  */
 ( function ( window ) {
     'use strict';
@@ -28,6 +28,7 @@
      */
     var defaults = {
         modal:true,
+        basic:false,
         movable:true,
         resizable:true,
         closable:true,
@@ -239,7 +240,7 @@
     /**
      * Super class for all dialogs
      *
-     * @return {Object}		base dialog prototype
+     * @return {Object}     base dialog prototype
      */
     var dialog = (function () {
         var //holds the list of used keys.
@@ -254,7 +255,7 @@
                 /*tab index required to fire click event before body focus*/
                 modal: '<div class="ajs-modal" tabindex="0"></div>',
                 dialog: '<div class="ajs-dialog" tabindex="0"></div>',
-                reset: '<a class="ajs-reset" href="#"></a>',
+                reset: '<button class="ajs-reset"></button>',
                 commands: '<div class="ajs-commands"><button class="ajs-pin"></button><button class="ajs-maximize"></button><button class="ajs-close"></button></div>',
                 header: '<div class="ajs-header"></div>',
                 body: '<div class="ajs-body"></div>',
@@ -286,29 +287,30 @@
                 maximized: 'ajs-maximized',
                 animationIn: 'ajs-in',
                 animationOut: 'ajs-out',
-                shake:'ajs-shake'
+                shake:'ajs-shake',
+                basic:'ajs-basic'
             };
-			
+            
         /**
          * Helper: initializes the dialog instance
          * 
-         * @return	{Number}	The total count of currently open modals.
+         * @return  {Number}    The total count of currently open modals.
          */
         function initialize(instance){
             
             if(!instance.__internal){
-				
+                
                 //no need to expose init after this.
                 delete instance.__init;
-				
+                
                 //in case the script was included before body.
-                //after first dialog gets initialized, it won't be null anymore!				
+                //after first dialog gets initialized, it won't be null anymore!                
                 if(null === reflow){
                     // set tabindex attribute on body element this allows script to give it
                     // focus after the dialog is closed
                     document.body.setAttribute( 'tabindex', '0' );
                 }
-				
+                
                 //get dialog buttons/focus setup
                 var setup;
                 if(typeof instance.setup === 'function'){
@@ -344,11 +346,12 @@
                     activeElement:document.body,
                     timerIn:undefined,
                     timerOut:undefined,
-                    buttons: setup.buttons,
+                    buttons: setup.buttons || [],
                     focus: setup.focus,
                     options: {
                         title: undefined,
                         modal: undefined,
+                        basic:undefined,
                         pinned: undefined,
                         movable: undefined,
                         resizable: undefined,
@@ -372,24 +375,24 @@
                     transitionInHandler:undefined,
                     transitionOutHandler:undefined
                 };
-				
+                
                                 
                 var elements = {};
                 //root node
                 elements.root = document.createElement('div');
                 
                 elements.root.className = classes.base + ' ' + classes.hidden + ' ';
-				
+                
                 elements.root.innerHTML = templates.dimmer + templates.modal;
                 
                 //dimmer
                 elements.dimmer = elements.root.firstChild;
-				
+                
                 //dialog
                 elements.modal = elements.root.lastChild;
                 elements.modal.innerHTML = templates.dialog;
                 elements.dialog = elements.modal.firstChild;
-                elements.dialog.innerHTML = templates.reset + templates.commands + templates.header + templates.body + templates.footer + templates.reset;
+                elements.dialog.innerHTML = templates.reset + templates.commands + templates.header + templates.body + templates.footer + templates.resizeHandle + templates.reset;
 
                 //reset links
                 elements.reset = [];
@@ -413,8 +416,10 @@
 
                 //footer
                 elements.footer = elements.body.nextSibling;
-                elements.footer.innerHTML = templates.buttons.auxiliary + templates.buttons.primary + templates.resizeHandle;
-                elements.resizeHandle = elements.footer.lastChild;
+                elements.footer.innerHTML = templates.buttons.auxiliary + templates.buttons.primary;
+                
+                //resize handle
+                elements.resizeHandle = elements.footer.nextSibling;
 
                 //buttons
                 elements.buttons = {};
@@ -466,23 +471,24 @@
                 
                 //settings
                 instance.setting('title', setup.options.title === undefined ? alertify.defaults.glossary.title : setup.options.title);
-				
+                
                 instance.setting('modal', setup.options.modal === undefined ? alertify.defaults.modal : setup.options.modal);
-							
+                instance.setting('basic', setup.options.basic === undefined ? alertify.defaults.basic : setup.options.basic);
+                            
                 instance.setting('movable', setup.options.movable === undefined ? alertify.defaults.movable : setup.options.movable);
                 instance.setting('resizable', setup.options.resizable === undefined ? alertify.defaults.resizable : setup.options.resizable);
-				
+                
                 instance.setting('closable', setup.options.closable === undefined ? alertify.defaults.closable : setup.options.closable);
                 instance.setting('maximizable', setup.options.maximizable === undefined ? alertify.defaults.maximizable : setup.options.maximizable);
-				
+                
                 instance.setting('pinnable', setup.options.pinnable === undefined ? alertify.defaults.pinnable : setup.options.pinnable);
                 instance.setting('pinned', setup.options.pinned === undefined ? alertify.defaults.pinned : setup.options.pinned);
-				
+                
                 instance.setting('transition', setup.options.transition === undefined ? alertify.defaults.transition : setup.options.transition);
 
                 instance.setting('padding', setup.options.padding === undefined ? alertify.defaults.padding : setup.options.padding);
                 instance.setting('overflow', setup.options.overflow === undefined ? alertify.defaults.overflow : setup.options.overflow);
-				
+                
 
                 // allow dom customization
                 if(typeof instance.build === 'function'){
@@ -514,7 +520,7 @@
                 addClass(document.body, classes.noOverflow);
             }
         }
-		
+        
         /**
          * Sets the name of the transition used to show/hide the dialog
          * 
@@ -528,12 +534,11 @@
             addClass(instance.elements.root, classes.prefix + value);
             reflow = instance.elements.root.offsetWidth;
         }
-		
+        
         /**
          * Toggles the dialog display mode
          *
          * @param {Object} instance The dilog instance.
-         * @param {Boolean} on True to make it modal, false otherwise.
          *
          * @return {undefined}
          */
@@ -542,32 +547,49 @@
 
                 //make modal
                 removeClass(instance.elements.root, classes.modeless);
-				
+                
                 //only if open
                 if(instance.isOpen()){
                     unbindModelessEvents(instance);
-					
+                    
                     //in case a pinned modless dialog was made modal while open.
                     updateAbsPositionFix(instance);
-					
+                    
                     ensureNoOverflow();
                 }
             }else{
                 //make modelss
                 addClass(instance.elements.root, classes.modeless);
-								
+                                
                 //only if open
                 if(instance.isOpen()){
                     bindModelessEvents(instance);
-					
+                    
                     //in case pin/unpin was called while a modal is open
                     updateAbsPositionFix(instance);
-										
+                                        
                     ensureNoOverflow();
                 }
             }
         }
-		
+
+        /**
+         * Toggles the dialog basic view mode 
+         *
+         * @param {Object} instance The dilog instance.
+         *
+         * @return {undefined}
+         */
+        function updateBasicMode(instance){
+            if (instance.setting('basic')) {
+                // add class
+                addClass(instance.elements.root, classes.basic);
+            } else {
+                // remove class
+                removeClass(instance.elements.root, classes.basic);
+            }
+        }
+        
         /**
          * Helper: Brings the modeless dialog to front, attached to modeless dialogs.
          *
@@ -585,7 +607,7 @@
                     return;
                 }
             }
-			
+            
             // Bring to front by making it the last child.
             if(document.body.lastChild !== instance.elements.root){
                 document.body.appendChild(instance.elements.root);
@@ -594,17 +616,17 @@
                 openDialogs.push(instance);
                 setFocus(instance);
             }
-			
+            
             return false;
         }
-		
+        
         /**
          * Helper: reflects dialogs options updates
          *
          * @param {Object} instance The dilog instance.
          * @param {String} option The updated option name.
          *
-         * @return	{undefined}	
+         * @return  {undefined} 
          */
         function optionUpdated(instance, option, oldValue, newValue){
             switch(option){
@@ -613,6 +635,9 @@
                 break;
             case 'modal':
                 updateDisplayMode(instance);
+                break;
+            case 'basic':
+                updateBasicMode(instance);
                 break;
             case 'pinned':
                 updatePinned(instance);
@@ -654,7 +679,7 @@
                 break;
             }
         }
-		
+        
         /**
          * Helper: reflects dialogs options updates
          *
@@ -665,17 +690,17 @@
          * @param {Object} value Optional, the value associated with the key (in case it was a string).
          * @param {String} option The updated option name.
          *
-         * @return	{Object} result object 
-         *	The result objects has an 'op' property, indicating of this is a SET or GET operation.
-         *		GET: 
-         *		- found: a flag indicating if the key was found or not.
-         *		- value: the property value.
-         *		SET:
-         *		- items: a list of key value pairs of the properties being set.
-         *				each contains:
-         *					- found: a flag indicating if the key was found or not.
-         *					- key: the property key.
-         *					- value: the property value.
+         * @return  {Object} result object 
+         *  The result objects has an 'op' property, indicating of this is a SET or GET operation.
+         *      GET: 
+         *      - found: a flag indicating if the key was found or not.
+         *      - value: the property value.
+         *      SET:
+         *      - items: a list of key value pairs of the properties being set.
+         *              each contains:
+         *                  - found: a flag indicating if the key was found or not.
+         *                  - key: the property key.
+         *                  - value: the property value.
          */
         function update(instance, obj, callback, key, value){
             var result = {op:undefined, items: [] };
@@ -719,7 +744,7 @@
                             callback.call(instance,key, old, value);
                         }
                         result.items.push({'key': key, 'value': value , 'found':true});
-						
+                        
                     }else{
                         result.items.push({'key': key, 'value': value , 'found':false});
                     }
@@ -730,12 +755,12 @@
             }
             return result;
         }
-		
+        
 
         /**
          * Triggers a close event.
          *
-         * @param {Object} instance	The dilog instance.
+         * @param {Object} instance The dilog instance.
          * 
          * @return {undefined}
          */
@@ -754,8 +779,8 @@
         /**
          * Dialogs commands event handler, attached to the dialog commands element.
          *
-         * @param {Event} event	DOM event object.
-         * @param {Object} instance	The dilog instance.
+         * @param {Event} event DOM event object.
+         * @param {Object} instance The dilog instance.
          * 
          * @return {undefined}
          */
@@ -786,7 +811,7 @@
         /**
          * Helper: pins the modeless dialog.
          *
-         * @param {Object} instance	The dialog instance.
+         * @param {Object} instance The dialog instance.
          * 
          * @return {undefined}
          */
@@ -798,7 +823,7 @@
         /**
          * Helper: unpins the modeless dialog.
          *
-         * @param {Object} instance	The dilog instance.
+         * @param {Object} instance The dilog instance.
          * 
          * @return {undefined}
          */
@@ -811,7 +836,7 @@
         /**
          * Helper: enlarges the dialog to fill the entire screen.
          *
-         * @param {Object} instance	The dilog instance.
+         * @param {Object} instance The dilog instance.
          * 
          * @return {undefined}
          */
@@ -826,7 +851,7 @@
         /**
          * Helper: returns the dialog to its former size.
          *
-         * @param {Object} instance	The dilog instance.
+         * @param {Object} instance The dilog instance.
          * 
          * @return {undefined}
          */
@@ -980,7 +1005,7 @@
         /**
          * Helper: closes the modal dialog when clicking the modal
          *
-         * @param {Event} event	DOM event object.
+         * @param {Event} event DOM event object.
          * @param {Object} instance The dilog instance.
          *
          * @return {undefined}
@@ -999,8 +1024,8 @@
         /** 
          * Helper: triggers a button callback
          *
-         * @param {Object}		The dilog instance.
-         * @param {Function}	Callback to check which button triggered the event.
+         * @param {Object}      The dilog instance.
+         * @param {Function}    Callback to check which button triggered the event.
          *
          * @return {undefined}
          */
@@ -1024,8 +1049,8 @@
         /**
          * Clicks event handler, attached to the dialog footer.
          *
-         * @param {Event}		DOM event object.
-         * @param {Object}		The dilog instance.
+         * @param {Event}       DOM event object.
+         * @param {Object}      The dilog instance.
          * 
          * @return {undefined}
          */
@@ -1040,8 +1065,8 @@
         /**
          * Keyup event handler, attached to the document.body
          *
-         * @param {Event}		DOM event object.
-         * @param {Object}		The dilog instance.
+         * @param {Event}       DOM event object.
+         * @param {Object}      The dilog instance.
          * 
          * @return {undefined}
          */
@@ -1059,13 +1084,16 @@
                     return button.key === keyCode;
                 });
                 return false;
+            } else if (instance.__internal.buttons.length === 0 && keyCode === keys.ESC && instance.get('closable') === true) {
+                triggerClose(instance);
+                return false;
             }
         }
         /**
         * Keydown event handler, attached to the document.body
         *
-        * @param {Event}		DOM event object.
-        * @param {Object}		The dilog instance.
+        * @param {Event}        DOM event object.
+        * @param {Object}       The dilog instance.
         * 
         * @return {undefined}
         */
@@ -1100,9 +1128,32 @@
                 var focus = instance.__internal.focus;
                 // the focus element.
                 var element = focus.element;
+
+                switch (typeof focus.element) {
                 // a number means a button index
-                if (typeof focus.element === 'number') {
-                    element = instance.__internal.buttons[focus.element].element;
+                case 'number':
+                    if (instance.__internal.buttons.length > focus.element) {
+                        //in basic view, skip focusing the buttons.
+                        if (instance.get('basic') === true) {
+                            element = instance.elements.reset[0];
+                        } else {
+                            element = instance.__internal.buttons[focus.element].element;
+                        }
+                    }
+                    break;
+                // a string means querySelector to select from dialog body contents.
+                case 'string':
+                    element = instance.elements.body.querySelector(focus.element);
+                    break;
+                // a function should return the focus element.
+                case 'function':
+                    element = focus.element.call(instance);
+                    break;
+                }
+                
+                // if no focus element, default to first reset element.
+                if ((typeof element === 'undefined' || element === null) && instance.__internal.buttons.length === 0) {
+                    element = instance.elements.reset[0];
                 }
                 // focus
                 if (element && element.focus) {
@@ -1139,10 +1190,10 @@
             if (instance && instance.isModal()) {
                 // determine reset target to enable forward/backward tab cycle.
                 var resetTarget, target = event.srcElement || event.target;
-                var lastResetLink = target === instance.elements.reset[1];
+                var lastResetElement = target === instance.elements.reset[1] || (instance.__internal.buttons.length === 0 && target === document.body);
 
                 // if last reset link, then go to maximize or close
-                if (lastResetLink) {
+                if (lastResetElement) {
                     if (instance.setting('maximizable')) {
                         resetTarget = instance.elements.commands.maximize;
                     } else if (instance.setting('closable')) {
@@ -1155,7 +1206,7 @@
                         // button focus element, go to first available button
                         if (target === instance.elements.reset[0]) {
                             resetTarget = instance.elements.buttons.auxiliary.firstChild || instance.elements.buttons.primary.firstChild;
-                        } else if (lastResetLink) {
+                        } else if (lastResetElement) {
                             //restart the cycle by going to first reset link
                             resetTarget = instance.elements.reset[0];
                         }
@@ -1174,8 +1225,8 @@
         /**
          * Transition in transitionend event handler. 
          *
-         * @param {Event}		TransitionEnd event object.
-         * @param {Object}		The dilog instance.
+         * @param {Event}       TransitionEnd event object.
+         * @param {Object}      The dilog instance.
          *
          * @return {undefined}
          */
@@ -1203,8 +1254,8 @@
         /**
          * Transition out transitionend event handler. 
          *
-         * @param {Event}		TransitionEnd event object.
-         * @param {Object}		The dilog instance.
+         * @param {Event}       TransitionEnd event object.
+         * @param {Object}      The dilog instance.
          *
          * @return {undefined}
          */
@@ -1244,7 +1295,7 @@
         /**
          * Helper: sets the element top/left coordinates
          *
-         * @param {Event} event	DOM event object.
+         * @param {Event} event DOM event object.
          * @param {Node} element The element being moved.
          * 
          * @return {undefined}
@@ -1258,7 +1309,7 @@
          * Triggers the start of a move event, attached to the header element mouse down event.
          * Adds no-selection class to the body, disabling selection while moving.
          *
-         * @param {Event} event	DOM event object.
+         * @param {Event} event DOM event object.
          * @param {Object} instance The dilog instance.
          * 
          * @return {Boolean} false
@@ -1301,7 +1352,7 @@
         /**
          * The actual move handler,  attached to document.body mousemove event.
          *
-         * @param {Event} event	DOM event object.
+         * @param {Event} event DOM event object.
          * 
          * @return {undefined}
          */
@@ -1374,7 +1425,7 @@
         }
 
         /* Controls moving a dialog around */
-        //holde the current instance being resized		
+        //holde the current instance being resized      
         var resizable = null,
             //holds the staring left offset when resize starts.
             startingLeft = Number.Nan,
@@ -1389,7 +1440,7 @@
         /**
          * Helper: sets the element width/height and updates left coordinate if neccessary.
          *
-         * @param {Event} event	DOM mousemove event object.
+         * @param {Event} event DOM mousemove event object.
          * @param {Node} element The element being moved.
          * @param {Boolean} pinned A flag indicating if the element being resized is pinned to the screen.
          * 
@@ -1454,7 +1505,7 @@
          * Triggers the start of a resize event, attached to the resize handle element mouse down event.
          * Adds no-selection class to the body, disabling selection while moving.
          *
-         * @param {Event} event	DOM event object.
+         * @param {Event} event DOM event object.
          * @param {Object} instance The dilog instance.
          * 
          * @return {Boolean} false
@@ -1490,7 +1541,7 @@
         /**
          * The actual resize handler,  attached to document.body mousemove event.
          *
-         * @param {Event} event	DOM event object.
+         * @param {Event} event DOM event object.
          * 
          * @return {undefined}
          */
@@ -1572,7 +1623,7 @@
         /**
          * Reset move/resize on window resize.
          *
-         * @param {Event} event	window resize event object.
+         * @param {Event} event window resize event object.
          *
          * @return {undefined}
          */
@@ -1918,9 +1969,9 @@
                 
                 // ensure initialization
                 initialize(this);
-								
+                                
                 if ( !this.__internal.isOpen ) {
-					
+                    
                     // add to open dialogs
                     this.__internal.isOpen = true;
                     openDialogs.push(this);
@@ -1940,15 +1991,15 @@
                     if(modal !== undefined){
                         this.setting('modal', modal);
                     }
-					
+                    
                     ensureNoOverflow();
-					
+                    
                     // allow custom dialog class on show
                     if(typeof className === 'string' && className !== ''){
                         this.__internal.className = className;
                         addClass(this.elements.root, className);
                     }
-					
+                    
                     updateAbsPositionFix(this);
 
                     removeClass(this.elements.root, classes.animationOut);
@@ -1996,9 +2047,9 @@
              */
             close: function () {
                 if (this.__internal.isOpen ) {
-					
+                    
                     unbindEvents(this);
-					
+                    
                     removeClass(this.elements.root, classes.animationIn);
                     addClass(this.elements.root, classes.animationOut);
 
@@ -2019,13 +2070,13 @@
                     if ( typeof this.setting('onclose') === 'function' ) {
                         this.setting('onclose')();
                     }
-					
+                    
                     //remove from open dialogs               
                     openDialogs.splice(openDialogs.indexOf(this),1);
                     this.__internal.isOpen = false;
-					
+                    
                     ensureNoOverflow();
-					
+                    
                 }
                 return this;
             },
@@ -2039,7 +2090,7 @@
                 return this;
             }
         };
-	} () );
+    } () );
     var notifier = (function () {
         var reflow,
             element,
@@ -2110,7 +2161,7 @@
         /**
         * creates a new notification message
         *
-        * @param  {DOMElement} message	The notifier message element
+        * @param  {DOMElement} message  The notifier message element
         * @param  {Number} wait   Time (in ms) to wait before the message is dismissed, a value of 0 means keep open till clicked.
         * @param  {Function} callback A callback function to be invoked when the message is dismissed.
         *
@@ -2283,7 +2334,7 @@
              * @param {string} key The setting name
              * @param {Variant} value The setting value.
              *
-             * @return {Object}	if the called as a setter, return the notifier instance.
+             * @return {Object} if the called as a setter, return the notifier instance.
              */
             setting: function (key, value) {
                 //ensure init
@@ -2547,10 +2598,10 @@
              * If a type is passed, a class name "ajs-{type}" will be added.
              * This allows for custom look and feel for various types of notifications.
              *
-             * @param  {String | DOMElement}    [message=undefined]		Message text
-             * @param  {String}                 [type='']				Type of log message
-             * @param  {String}                 [wait='']				Time (in seconds) to wait before auto-close
-             * @param  {Function}               [callback=undefined]	A callback function to be invoked when the log is closed.
+             * @param  {String | DOMElement}    [message=undefined]     Message text
+             * @param  {String}                 [type='']               Type of log message
+             * @param  {String}                 [wait='']               Time (in seconds) to wait before auto-close
+             * @param  {Function}               [callback=undefined]    A callback function to be invoked when the log is closed.
              *
              * @return {Object} Notification object.
              */
@@ -2560,9 +2611,9 @@
             /**
              * Creates a new notification message.
              *
-             * @param  {String}		[message=undefined]		Message text
-             * @param  {String}     [wait='']				Time (in seconds) to wait before auto-close
-             * @param  {Function}	[callback=undefined]	A callback function to be invoked when the log is closed.
+             * @param  {String}     [message=undefined]     Message text
+             * @param  {String}     [wait='']               Time (in seconds) to wait before auto-close
+             * @param  {Function}   [callback=undefined]    A callback function to be invoked when the log is closed.
              *
              * @return {Object} Notification object.
              */
@@ -2572,9 +2623,9 @@
             /**
              * Creates a new notification message of type 'success'.
              *
-             * @param  {String}		[message=undefined]		Message text
-             * @param  {String}     [wait='']				Time (in seconds) to wait before auto-close
-             * @param  {Function}	[callback=undefined]	A callback function to be invoked when the log is closed.
+             * @param  {String}     [message=undefined]     Message text
+             * @param  {String}     [wait='']               Time (in seconds) to wait before auto-close
+             * @param  {Function}   [callback=undefined]    A callback function to be invoked when the log is closed.
              *
              * @return {Object} Notification object.
              */
@@ -2584,9 +2635,9 @@
             /**
              * Creates a new notification message of type 'error'.
              *
-             * @param  {String}		[message=undefined]		Message text
-             * @param  {String}     [wait='']				Time (in seconds) to wait before auto-close
-             * @param  {Function}	[callback=undefined]	A callback function to be invoked when the log is closed.
+             * @param  {String}     [message=undefined]     Message text
+             * @param  {String}     [wait='']               Time (in seconds) to wait before auto-close
+             * @param  {Function}   [callback=undefined]    A callback function to be invoked when the log is closed.
              *
              * @return {Object} Notification object.
              */
@@ -2596,9 +2647,9 @@
             /**
              * Creates a new notification message of type 'warning'.
              *
-             * @param  {String}		[message=undefined]		Message text
-             * @param  {String}     [wait='']				Time (in seconds) to wait before auto-close
-             * @param  {Function}	[callback=undefined]	A callback function to be invoked when the log is closed.
+             * @param  {String}     [message=undefined]     Message text
+             * @param  {String}     [wait='']               Time (in seconds) to wait before auto-close
+             * @param  {Function}   [callback=undefined]    A callback function to be invoked when the log is closed.
              *
              * @return {Object} Notification object.
              */
@@ -2621,10 +2672,10 @@
     * Alert dialog definition
     *
     * invoked by:
-    *	alertify.alert(message);
-    *	alertify.alert(title, message);
-    *	alertify.alert(message, onok);
-    *	alertify.alert(title, message, onok);
+    *   alertify.alert(message);
+    *   alertify.alert(title, message);
+    *   alertify.alert(message, onok);
+    *   alertify.alert(title, message, onok);
      */
     alertify.dialog('alert', function () {
         return {
@@ -2713,10 +2764,10 @@
     /**
      * Confirm dialog object
      *
-     *	alertify.confirm(message);
-     *	alertify.confirm(message, onok);
-     *	alertify.confirm(message, onok, oncancel);
-     *	alertify.confirm(title, message, onok, oncancel);
+     *  alertify.confirm(message);
+     *  alertify.confirm(message, onok);
+     *  alertify.confirm(message, onok, oncancel);
+     *  alertify.confirm(title, message, onok, oncancel);
      */
     alertify.dialog('confirm', function () {
 
@@ -2900,11 +2951,11 @@
      * Prompt dialog object
      *
      * invoked by:
-     *	alertify.prompt(message);
-     *	alertify.prompt(message, value);
-     *	alertify.prompt(message, value, onok);
-     *	alertify.prompt(message, value, onok, oncancel);
-     *	alertify.prompt(title, message, value, onok, oncancel);
+     *  alertify.prompt(message);
+     *  alertify.prompt(message, value);
+     *  alertify.prompt(message, value, onok);
+     *  alertify.prompt(message, value, onok, oncancel);
+     *  alertify.prompt(title, message, value, onok, oncancel);
      */
     alertify.dialog('prompt', function () {
         var input = document.createElement('INPUT');
@@ -2931,7 +2982,7 @@
                     onok = _value;
                     oncancel = _onok;
                     break;
-                case 4:
+                case 5:
                     title = _title;
                     message = _message;
                     value = _value;
@@ -3046,6 +3097,7 @@
             }
         };
     });
+
     // AMD and window support
     if ( typeof define === 'function' ) {
         define( [], function () {
