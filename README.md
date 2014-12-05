@@ -28,7 +28,7 @@ The alertify files will be added to the asset pipeline and available for you to 
 
 Optional js(coffe script) replace browser confirm dialog
 ```javascript
-//= require alertify/alertify/confirm-modal
+//= require alertify/confirm-modal
 ```
 
 In order to get the CSS, add the following line to `app/assets/stylesheets/application.css.scss`
@@ -48,3 +48,6 @@ flash helper, add the following line in layout
 <%= alertify_flash %>
 </head>
 ```
+
+More? read  [alertify.js](http://alertifyjs.com/) documentation [here](http://alertifyjs.com/) 
+
