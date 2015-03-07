@@ -31,7 +31,7 @@ Optional js(coffe script) replace browser confirm dialog
 //= require alertify/confirm-modal
 ```
 
-In order to get the CSS, add the following line to `app/assets/stylesheets/application.css.scss`
+In order to get the CSS, add the following line to `app/assets/stylesheets/application.css`
 
 ```css
 /*
@@ -39,6 +39,14 @@ In order to get the CSS, add the following line to `app/assets/stylesheets/appli
  *= require alertify/default
  *= require alertify/bootstrap
  */
+```
+
+or if you using scss `app/assets/stylesheets/application.scss`
+
+```scss
+ @import "alertify";
+ @import "alertify/default";
+ @import "alertify/bootstrap";
 ```
 
 flash helper, add the following line in layout
