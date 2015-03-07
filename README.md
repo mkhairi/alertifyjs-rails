@@ -1,6 +1,6 @@
 # alertifyjs-rails
 
-This gem provides [alertify.js](http://alertifyjs.com/) (v1.2.0) for Rails.
+This gem provides [alertify.js](http://alertifyjs.com/) (v1.2.1) for Rails.
 
 
 ## Installation
@@ -49,5 +49,5 @@ flash helper, add the following line in layout
 </head>
 ```
 
-More? read  [alertify.js](http://alertifyjs.com/) documentation [here](http://alertifyjs.com/) 
+More option? read  [alertify.js](http://alertifyjs.com/) documentation [here](http://alertifyjs.com/) 
 
