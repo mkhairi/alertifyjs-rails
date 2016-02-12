@@ -1,7 +1,7 @@
-module AlertifyjsHelper  
-  def alertify_flash
+module AlertifyjsHelper
+  
+  def alertify_notifier
     valid_alertify = ["error", "message", "success", "warning"]
-    jsReturn = javascript_tag()
     js_alertify = ""
     queue = 0
     flash.each do |type, message|
@@ -22,7 +22,15 @@ module AlertifyjsHelper
       queue += 100
     end    
     flash.clear
-    jsReturn = javascript_tag(js_alertify)
-    jsReturn.html_safe()
+    return js_alertify.html_safe()
   end
+  
+  def alertify_flash     
+    jsReturn = javascript_tag(alertify_notifier)
+  end
+  
+  def alertify_flash_now
+    alertify_notifier
+  end
+  
 end
