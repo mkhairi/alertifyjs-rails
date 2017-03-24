@@ -1,5 +1,4 @@
-# alertifyjs-rails
-[![Gem Version](https://badge.fury.io/rb/alertifyjs-rails.svg)](http://badge.fury.io/rb/alertifyjs-rails)
+# alertifyjs-rails [![Gem Version](https://badge.fury.io/rb/alertifyjs-rails.svg)](http://badge.fury.io/rb/alertifyjs-rails)
 
 This gem provides [alertify.js](http://alertifyjs.com/) for Rails.
 
