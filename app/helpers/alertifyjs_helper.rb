@@ -1,6 +1,6 @@
 module AlertifyjsHelper
   
-  def alertify_notifier
+  def alertify_notifier(*args)
     valid_alertify = ["error", "message", "success", "warning"]
     js_alertify = ""
     queue = 0
