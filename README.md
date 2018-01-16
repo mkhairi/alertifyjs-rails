@@ -57,5 +57,13 @@ flash helper, add the following line in layout
 </head>
 ```
 
+or with wait timeout option
+
+```html 
+<head>
+<%= alertify_flash(wait: 20) %>
+</head>
+```
+
 More option? read  [alertify.js](http://alertifyjs.com/) documentation [here](http://alertifyjs.com/) 
 

@@ -30,8 +30,9 @@ module AlertifyjsHelper
     jsReturn = javascript_tag(alertify_notifier(wait))
   end
   
-  def alertify_flash_now
-    alertify_notifier
+  def alertify_flash_now(**args) 
+    wait = args[:wait].nil? ? 5 : args[:wait]
+    alertify_notifier(wait)
   end
   
 end
