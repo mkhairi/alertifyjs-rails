@@ -1,6 +1,6 @@
 module AlertifyjsHelper
   
-  def alertify_notifier(*args)
+  def alertify_notifier(wait)
     valid_alertify = ["error", "message", "success", "warning"]
     js_alertify = ""
     queue = 0
@@ -17,7 +17,7 @@ module AlertifyjsHelper
       end      
      next unless valid_alertify.include?(type)         
       Array(message).each do |msg|
-        js_alertify << "setTimeout(function(){alertify.#{type}('#{j(msg)}');}, #{queue});"
+        js_alertify << "setTimeout(function(){alertify.#{type}('#{j(msg)}', #{wait});}, #{queue});"
       end
       queue += 100
     end    
@@ -25,8 +25,9 @@ module AlertifyjsHelper
     return js_alertify.html_safe()
   end
   
-  def alertify_flash     
-    jsReturn = javascript_tag(alertify_notifier)
+  def alertify_flash(**args)   
+    wait = args[:wait].nil? ? 5 : args[:wait]
+    jsReturn = javascript_tag(alertify_notifier(wait))
   end
   
   def alertify_flash_now
