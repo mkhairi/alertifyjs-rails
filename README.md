@@ -64,6 +64,15 @@ or with wait timeout option
 <%= alertify_flash(wait: 20) %>
 </head>
 ```
+**notes
+The default content security policy for Rails 5.2 blocked the functionality of this flash helper. An initial workaround is to add :unsafe_inline as an option to the policy.script_src in development 
+
+```ruby
+policy.script_src  :self, :https, :unsafe_inline
+
+```
+
+
 
 More option? read  [alertify.js](http://alertifyjs.com/) documentation [here](http://alertifyjs.com/) 
 
