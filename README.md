@@ -33,7 +33,7 @@ Optional js(coffe script) replace browser confirm dialog
 //= require alertify/confirm-modal
 ```
 
-*if you use rails-ujs (default rails 5)
+* if you use rails-ujs (default rails 5)
 ```javascript
 //= require alertify/confirm-ujs
 ```
