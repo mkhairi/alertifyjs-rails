@@ -27,9 +27,17 @@ The alertify files will be added to the asset pipeline and available for you to 
 ```
 
 Optional js(coffe script) replace browser confirm dialog
+
+* if you use jquery-ujs
 ```javascript
 //= require alertify/confirm-modal
 ```
+
+*if you use rails-ujs (default rails 5)
+```javascript
+//= require alertify/confirm-ujs
+```
+
 
 In order to get the CSS, add the following line to `app/assets/stylesheets/application.css`
 
