@@ -72,6 +72,12 @@ or with wait timeout option
 <%= alertify_flash(wait: 20) %>
 </head>
 ```
+
+or in your js request format
+```js
+<%= alertify_flash_now %>
+````
+
 **notes
 The default content security policy for Rails 5.2 blocked the functionality of this flash helper. An initial workaround is to add :unsafe_inline as an option to the policy.script_src in development 
 
